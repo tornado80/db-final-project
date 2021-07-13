@@ -16,7 +16,7 @@ CREATE TABLE book (
     edition INT,
     published_date DATE,
     publisher_id INT,
-    CONSTRAINT fk_publisher_id FOREIGN KEY publisher_id REFERENCES publisher(id)
+    CONSTRAINT fk_publisher_id FOREIGN KEY (publisher_id) REFERENCES publisher(id)
 );
 
 CREATE TABLE lang (
@@ -50,16 +50,16 @@ With this approach, it could be recorded who has borrowed which instance and the
 
 CREATE TABLE original_book (
     isbn ISBN PRIMARY KEY,
-    CONSTRAINT fk_isbn FOREIGN KEY isbn REFERENCES book(isbn)
+    CONSTRAINT fk_isbn FOREIGN KEY (isbn) REFERENCES book(isbn)
 );
 
 CREATE TABLE translated_book (
     isbn ISBN PRIMARY KEY,
     original_isbn ISBN, /* The book from which translators have translated. */
     lang_id INT, /* The destination language to which translators has translated the book. It is obviously single-valued not multivalued. */
-    CONSTRAINT fk_lang_id FOREIGN KEY lang_id REFERENCES lang(id),
-    CONSTRAINT fk_isbn FOREIGN KEY isbn REFERENCES book(isbn),
-    CONSTRAINT fk_original_isbn FOREIGN KEY original_isbn REFERENCES original_book(isbn)
+    CONSTRAINT fk_lang_id FOREIGN KEY (lang_id) REFERENCES lang(id),
+    CONSTRAINT fk_isbn FOREIGN KEY (isbn) REFERENCES book(isbn),
+    CONSTRAINT fk_original_isbn FOREIGN KEY (original_isbn) REFERENCES original_book(isbn)
 );
 
 CREATE TABLE book_instance (
@@ -67,15 +67,15 @@ CREATE TABLE book_instance (
     isbn ISBN,
     year_added_to_library DATE,
     PRIMARY KEY (id, isbn),
-    CONSTRAINT fk_isbn FOREIGN KEY isbn REFERENCES book(isbn),
+    CONSTRAINT fk_isbn FOREIGN KEY (isbn) REFERENCES book(isbn)
 );
 
 CREATE TABLE book_language (
     isbn ISBN,
     lang_id INT,
     PRIMARY KEY (isbn, lang_id),
-    CONSTRAINT fk_lang_id FOREIGN KEY lang_id REFERENCES lang(id),
-    CONSTRAINT fk_isbn FOREIGN KEY isbn REFERENCES original_book(isbn),
+    CONSTRAINT fk_lang_id FOREIGN KEY (lang_id) REFERENCES lang(id),
+    CONSTRAINT fk_isbn FOREIGN KEY (isbn) REFERENCES original_book(isbn)
 );
 
 CREATE TABLE author (
@@ -87,8 +87,8 @@ CREATE TABLE book_author (
     author_id INT,
     book_isbn ISBN,
     PRIMARY KEY (author_id, book_isbn),
-    CONSTRAINT fk_author_id FOREIGN KEY author_id REFERENCES author(id),
-    CONSTRAINT fk_book_isbn FOREIGN KEY book_isbn REFERENCES original_book(isbn), /* Only original books have authors. */
+    CONSTRAINT fk_author_id FOREIGN KEY (author_id) REFERENCES author(id),
+    CONSTRAINT fk_book_isbn FOREIGN KEY (book_isbn) REFERENCES original_book(isbn) /* Only original books have authors. */
 );
 
 CREATE TABLE translator (
@@ -100,8 +100,8 @@ CREATE TABLE book_translator (
     translator_id INT,
     book_isbn ISBN,
     PRIMARY KEY (translator_id, book_isbn),
-    CONSTRAINT fk_translator_id FOREIGN KEY translator_id REFERENCES translator(id),
-    CONSTRAINT fk_book_isbn FOREIGN KEY book_isbn REFERENCES translated_book(isbn),
+    CONSTRAINT fk_translator_id FOREIGN KEY (translator_id) REFERENCES translator(id),
+    CONSTRAINT fk_book_isbn FOREIGN KEY (book_isbn) REFERENCES translated_book(isbn)
 );
 
 CREATE TABLE genre (
@@ -113,8 +113,8 @@ CREATE TABLE book_genre (
     genre_id INT,
     book_isbn ISBN,
     PRIMARY KEY (genre_id, book_isbn),
-    CONSTRAINT fk_genre_id FOREIGN KEY genre_id REFERENCES genre(id),
-    CONSTRAINT fk_book_isbn FOREIGN KEY book_isbn REFERENCES book(isbn),
+    CONSTRAINT fk_genre_id FOREIGN KEY (genre_id) REFERENCES genre(id),
+    CONSTRAINT fk_book_isbn FOREIGN KEY (book_isbn) REFERENCES book(isbn)
 );
 
 CREATE TABLE member (
@@ -133,6 +133,6 @@ CREATE TABLE borrow (
     instance_isbn ISBN,
     borrowed_date DATE,
     return_date DATE,
-    CONSTRAINT fk_member_id FOREIGN KEY member_id REFERENCES member(id),
-    CONSTRAINT fk_instance FOREIGN KEY (instance_id, instance_isbn) REFERENCES book_instance(id, isbn),
+    CONSTRAINT fk_member_id FOREIGN KEY (member_id) REFERENCES member(id),
+    CONSTRAINT fk_instance FOREIGN KEY (instance_id, instance_isbn) REFERENCES book_instance(id, isbn)
 );
