@@ -44,7 +44,9 @@ def main():
     parser.add_argument("-ds", "--destination-schema", metavar=SCHEMA,
                         help="destination database schema (defaults to public)")
 
-    args = parser.parse_args(namespace=Args())
+    args = parser.parse_args(
+        ["-s", "db_final_project", "amirhosein", "123456", "-d", "db_course", "amirhosein", "123456"],
+        namespace=Args())
     source_dbname, source_user, source_password = args.source_db
     destination_dbname, destination_user, destination_password = args.destination_db
 

@@ -24,16 +24,13 @@ class DAG:
 
     def topological_order(self):
         result = []
-        remaining_incoming_edges = {}
+        remaining_incoming_edges = {k: 0 for k in self.__vertices.keys()}
         nodes_without_incoming_edges = set()
         # initialization
         for vertex in self.__vertices.values():
             for neighbor in vertex.outgoing_edges:
-                key = neighbor.key
-                if key not in remaining_incoming_edges:
-                    remaining_incoming_edges[key] = 0
-                remaining_incoming_edges[key] += 1
-        for key, count in remaining_incoming_edges:
+                remaining_incoming_edges[neighbor.key] += 1
+        for key, count in remaining_incoming_edges.items():
             if count == 0:
                 nodes_without_incoming_edges.add(key)
         # processing
@@ -50,7 +47,7 @@ class DAG:
     def add_outgoing_edge(self, k1, k2):
         for k in [k1, k2]:
             if k not in self.__vertices:
-                raise KeyError(f"Vertex key not found {k}.")
+                raise KeyError(f"Vertex key not found: {k}.")
         self.__vertices[k1].add_outgoing_edge(self.__vertices[k2])
 
     def add_node(self, key):
@@ -60,3 +57,13 @@ class DAG:
 
 
 __all__ = ["DAG"]
+
+
+if __name__ == "__main__":
+    g = DAG()
+    g.add_node(1)
+    g.add_node(2)
+    g.add_node(3)
+    g.add_outgoing_edge(1, 3)
+    g.add_outgoing_edge(3, 2)
+    print(g.topological_order())

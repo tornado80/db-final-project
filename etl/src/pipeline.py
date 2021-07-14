@@ -8,4 +8,5 @@ class Pipeline:
 
     def run(self):
         self.__source_db.connect()
-        self.__destination_db.connect()
+        print(self.__source_db.dag().topological_order())
+        self.__source_db.close()
