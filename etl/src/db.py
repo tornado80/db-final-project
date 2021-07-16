@@ -35,7 +35,7 @@ class DB:
         if self.__port is not None:
             kwargs["port"] = self.__port
         self.__connection = psycopg2.connect(**kwargs)
-        self.__connection.autocommit = True
+        #self.__connection.autocommit = True
         print(f"Successfully connected to database {self.__dbname} as {self.__user} ({self})")
 
     def __getitem__(self, table_name):
@@ -44,6 +44,9 @@ class DB:
     def __str__(self):
         base = f"schema {self.__schema} of database {self.__dbname}"
         return base if self.__host is None else base + f" hosted on {self.__host}:{self.__port}"
+
+    def commit(self):
+        self.__connection.commit()
 
     def fetch_tables_columns(self):
         loading("Fetching tables' attributes of", self)
@@ -56,6 +59,7 @@ class DB:
                 GROUP BY C.relname;
             """, (self.__schema,))
             tables = cursor.fetchall()
+            self.commit()
         done()
 
         for table_name, columns in tables:
@@ -72,6 +76,7 @@ class DB:
             GROUP BY CL.relname;
         """, (self.__schema,))
         tables = cursor.fetchall()
+        self.commit()
         done()
 
         for table_name, primary_keys in tables:
@@ -88,6 +93,7 @@ class DB:
             GROUP BY B.relname, C.relname;
         """, (self.__schema,))
         foreign_keys = cursor.fetchall()
+        self.commit()
         done()
 
         for a, b in foreign_keys:
@@ -97,13 +103,13 @@ class DB:
     def dag(self) -> DAG:
         if self.__dag is not None:
             return self.__dag
-        loading("Creating tables' dependencies DAG of", self)
+        print("Creating tables' dependencies DAG of", self)
         dag = DAG(str(self))
         with self.cursor as cursor:
             self.__add_nodes_to_dag(dag, cursor)
             self.__add_edges_to_dag(dag, cursor)
         self.__dag = dag
-        done()
+        print("DAG creation done")
         return dag
 
     def close(self):

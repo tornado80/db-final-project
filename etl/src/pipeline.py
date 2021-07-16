@@ -52,7 +52,9 @@ class Pipeline:
                         conditions=SQL(" AND ").join(map(self.__condition_maker, primary_key_identifiers))
                     ), record[len(primary_key):] + record[:len(primary_key)]
                 )
+            self.__destination_db.commit()
         source_cursor.close()
+        self.__source_db.commit()
         destination_cursor.close()
 
     def __perform_insertions_and_updates(self, topological_order: list):
@@ -62,13 +64,14 @@ class Pipeline:
             loading(f"Performing insertions and updates on table {table_name}")
             self.__perform_insertions_and_updates_on_table(table_name)
             done()
+        print("Insertions and updates done")
 
     def __perform_deletion_on_table(self, table_name):
         source_cursor = self.__source_db.cursor
         # create a server-side cursor in destination database for a huge data transfer
         destination_select_cursor = self.__destination_db.named_cursor("select_cursor")
         destination_delete_cursor = self.__destination_db.cursor
-        primary_key, columns = self.__destination_db[table_name]
+        primary_key, columns = self.__source_db[table_name]
         primary_key_identifiers = [Identifier(prime_attr) for prime_attr in primary_key]
         other_columns = list(set(columns) - set(primary_key))
         other_columns_identifiers = [Identifier(attr) for attr in other_columns]
@@ -95,8 +98,10 @@ class Pipeline:
                         conditions=SQL(" AND ").join(map(self.__condition_maker, primary_key_identifiers))
                     ), record[:len(primary_key)]
                 )
+            self.__source_db.commit()
         source_cursor.close()
         destination_select_cursor.close()
+        self.__destination_db.commit()
         destination_delete_cursor.close()
 
     def __perform_deletions(self, topological_order: list):
@@ -105,6 +110,7 @@ class Pipeline:
             loading(f"Performing deletions on table {table_name}")
             self.__perform_deletion_on_table(table_name)
             done()
+        print("Deletions done")
 
     def run(self):
         self.__source_db.connect()
@@ -116,7 +122,7 @@ class Pipeline:
         self.__perform_deletions(topological_order.copy())
         self.__source_db.close()
         self.__destination_db.close()
-        print("Done")
+        print("ETL Done")
 
     def __check_conditions(self):
         pass
