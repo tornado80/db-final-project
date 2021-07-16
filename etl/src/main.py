@@ -45,7 +45,7 @@ def main():
                         help="destination database schema (defaults to public)")
 
     args = parser.parse_args(
-        ["-s", "db_final_project", "amirhosein", "123456", "-d", "db_course", "amirhosein", "123456"],
+        # "-s db_final_project amirhosein 123456 -d db_course amirhosein 123456".split(),
         namespace=Args())
     source_dbname, source_user, source_password = args.source_db
     destination_dbname, destination_user, destination_password = args.destination_db

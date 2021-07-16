@@ -1,5 +1,5 @@
 from linked_list import LinkedList
-
+from logger import loading, done
 
 class Vertex:
     def __init__(self, key):
@@ -19,10 +19,13 @@ class Vertex:
 
 
 class DAG:
-    def __init__(self):
+    def __init__(self, name: str):
         self.__vertices = {}
+        self.__name = name
 
+    @property
     def topological_order(self):
+        loading(f"Calculating topological order of DAG with name: {self.__name}")
         result = []
         remaining_incoming_edges = {k: 0 for k in self.__vertices.keys()}
         nodes_without_incoming_edges = set()
@@ -42,6 +45,7 @@ class DAG:
                 remaining_incoming_edges[neighbor_key] -= 1
                 if remaining_incoming_edges[neighbor_key] == 0:
                     nodes_without_incoming_edges.add(neighbor_key)
+        done()
         return result
 
     def add_outgoing_edge(self, k1, k2):
@@ -60,10 +64,10 @@ __all__ = ["DAG"]
 
 
 if __name__ == "__main__":
-    g = DAG()
+    g = DAG("sample")
     g.add_node(1)
     g.add_node(2)
     g.add_node(3)
     g.add_outgoing_edge(1, 3)
     g.add_outgoing_edge(3, 2)
-    print(g.topological_order())
+    print(g.topological_order)

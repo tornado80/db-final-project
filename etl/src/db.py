@@ -1,21 +1,30 @@
 import psycopg2
 from dag import DAG
-
+from logger import loading, done
 
 class DB:
-    def __init__(self, dbname, user, password, host=None, port=None, schema="public"):
+    def __init__(self, dbname, user, password, host=None, port=None, schema=None):
         self.__dbname = dbname
         self.__user = user
         self.__password = password
         self.__host = host
         self.__port = port
-        self.__schema = schema
+        self.__schema = "public" if schema is None else schema
         self.__connection = None
-        self.__cursor = None
+        self.__primary_keys = {}
+        self.__columns = {}
+        self.__dag = None
 
     @property
     def cursor(self):
-        return self.__cursor
+        return self.__connection.cursor()
+
+    def named_cursor(self, name):
+        return self.__connection.cursor(name)
+
+    @property
+    def schema(self):
+        return self.__schema
 
     def connect(self):
         kwargs = {"dbname": self.__dbname,
@@ -26,38 +35,77 @@ class DB:
         if self.__port is not None:
             kwargs["port"] = self.__port
         self.__connection = psycopg2.connect(**kwargs)
-        self.__cursor = self.__connection.cursor()
-        print(f"Successfully connected to database {self.__dbname} as {self.__user}")
+        self.__connection.autocommit = True
+        print(f"Successfully connected to database {self.__dbname} as {self.__user} ({self})")
 
-    def dag(self) -> DAG:
-        g = DAG()
-        schema = "public" if self.__schema is None else self.__schema
+    def __getitem__(self, table_name):
+        return self.__primary_keys[table_name], self.__columns[table_name]
 
-        self.__cursor.execute("""
-            SELECT tablename FROM pg_tables WHERE schemaname = %s
-        """, (schema,))
-        table_names = self.__cursor.fetchall()
-        print(f"Fetched table names of database {self.__dbname}")
+    def __str__(self):
+        base = f"schema {self.__schema} of database {self.__dbname}"
+        return base if self.__host is None else base + f" hosted on {self.__host}:{self.__port}"
 
-        for table_name in table_names:
-            g.add_node(table_name[0])
+    def fetch_tables_columns(self):
+        loading("Fetching tables' attributes of", self)
+        with self.cursor as cursor:
+            cursor.execute("""
+                SELECT C.relname, array_agg(A.attname) 
+                FROM pg_attribute AS A JOIN pg_class AS C ON A.attrelid = C.oid 
+                WHERE C.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = %s)
+                AND C.relkind = 'r' AND A.attstattarget < 0
+                GROUP BY C.relname;
+            """, (self.__schema,))
+            tables = cursor.fetchall()
+        done()
 
-        self.__cursor.execute("""
-            SELECT B.relname, C.relname FROM pg_constraint as A, pg_class as B, pg_class as C 
+        for table_name, columns in tables:
+            self.__columns[table_name] = columns
+
+    def __add_nodes_to_dag(self, dag: DAG, cursor):
+        loading("Fetching tables' name and primary key of", self)
+        cursor.execute("""
+            SELECT CL.relname, array_agg(A.attname) 
+            FROM pg_constraint AS CO, pg_class AS CL, pg_attribute as A
+            WHERE CO.conrelid = CL.oid AND A.attrelid = CL.oid 
+            AND CO.contype = 'p' AND A.attnum = ANY(CO.conkey)
+            AND CL.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = %s)
+            GROUP BY CL.relname;
+        """, (self.__schema,))
+        tables = cursor.fetchall()
+        done()
+
+        for table_name, primary_keys in tables:
+            dag.add_node(table_name)
+            self.__primary_keys[table_name] = primary_keys
+
+    def __add_edges_to_dag(self, dag: DAG, cursor):
+        loading("Fetching tables' foreign keys of", self)
+        cursor.execute("""
+            SELECT B.relname, C.relname 
+            FROM pg_constraint as A, pg_class as B, pg_class as C 
             WHERE A.conrelid = B.oid AND A.confrelid = C.oid 
             AND A.connamespace = (SELECT oid FROM pg_namespace WHERE nspname = %s) 
             GROUP BY B.relname, C.relname;
-        """, (schema,))
-        foreign_keys = self.__cursor.fetchall()
-        print(f"Fetched foreign keys in database {self.__dbname}")
+        """, (self.__schema,))
+        foreign_keys = cursor.fetchall()
+        done()
 
-        for foreign_key in foreign_keys:
-            a, b = foreign_key
-            g.add_outgoing_edge(a, b)
+        for a, b in foreign_keys:
+            dag.add_outgoing_edge(a, b)
 
-        return g
+    @property
+    def dag(self) -> DAG:
+        if self.__dag is not None:
+            return self.__dag
+        loading("Creating tables' dependencies DAG of", self)
+        dag = DAG(str(self))
+        with self.cursor as cursor:
+            self.__add_nodes_to_dag(dag, cursor)
+            self.__add_edges_to_dag(dag, cursor)
+        self.__dag = dag
+        done()
+        return dag
 
     def close(self):
-        self.__cursor.close()
         self.__connection.close()
-        print(f"Disconnected from database {self.__dbname}")
+        print("Disconnected from", self)
