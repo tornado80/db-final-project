@@ -1,0 +1,109 @@
+\documentclass{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{qtree}
+\usepackage{fancyhdr}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{setspace}
+\usepackage{xepersian}
+
+\pagestyle{fancy}
+
+\settextfont{XB Niloofar}
+\setlatintextfont{Code New Roman}
+
+% Fixture for Xepersian 23 bug in setting persian math digit fonts
+%\ExplSyntaxOn \cs_set_eq:NN \etex_iffontchar:D \tex_iffontchar:D \ExplSyntaxOff
+%\setmathdigitfont{XB Niloofar}
+
+\newcommand{\me}{امیرحسین رجبی}
+\newcommand{\homework}{
+	پروژه پایانی پایگاه داده (بخش \lr{ETL})
+}
+\newcommand{\studentNumber}{9813013}
+\newcommand{\meAndStudentNumber}{\me \vspace{1pt} (\studentNumber)}
+\newcommand{\instructor}{دکتر غیبی}
+
+\fancyhead[C]{\homework}
+
+\title{\textbf{\homework}}
+\author{\meAndStudentNumber}
+\date{}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+	backgroundcolor=\color{backcolour},   
+	commentstyle=\color{codegreen},
+	keywordstyle=\color{magenta},
+	numberstyle=\tiny\color{codegray},
+	stringstyle=\color{codepurple},
+	basicstyle=\ttfamily\footnotesize,
+	breakatwhitespace=false,         
+	breaklines=true,                 
+	captionpos=b,                    
+	keepspaces=true,                 
+	numbers=left,                    
+	numbersep=5pt,                  
+	showspaces=false,                
+	showstringspaces=false,
+	showtabs=false,                  
+	tabsize=2
+}
+
+\lstset{style=mystyle, language=bash}
+
+\begin{document}
+
+\maketitle
+
+\doublespacing
+
+\section*{نصب}
+
+\begin{latin}
+\begin{lstlisting}
+	cd etl/src
+	python3 -m venv env
+	source env/bin/activate
+	pip install -r requirements.txt
+	python main.py -h
+\end{lstlisting}
+\end{latin}
+
+\section*{نحوه استفاده}
+
+به کمک کتابخانه 
+\lstinline|argparse|
+یک رابط 
+\lr{CLR}
+طراحی شده است که میتوان صفحه 
+\lr{help}
+را به کمک دستور
+\lr{\lstinline|python main.py -h|}
+آن را مشاهده کرد. به طوری کلی ورودی های ضروری حداقل مشخصات لازم برای اتصال به پایگاه داده مبدا و مقصد است. (یعنی نام، نام کاربر پایگاه داده و رمز آن) اما در صورت محلی
+\footnote{\lr{non local or remote}}
+نبودن پایگاه داده، آدرس سرور میزبان
+\footnote{\lr{host}}
+و درگاه 
+\footnote{\lr{port}}
+می توانند مشخص شوند. همچنین میتوان اسکیما 
+\footnote{\lr{schema}}
+که جداول در آن قرار دارند را مشخص کرد.  مثلا دستور زیر یک دستور معتبر است:
+\begin{latin}
+\begin{lstlisting}
+	python main.py -s db1 user1 pass1 -d db2 user 2 pass2 -ss schema1 -ds schema2 -sh host1 -sp port1 -dh host2 -dp port2
+\end{lstlisting}
+\end{latin}
+
+\section*{ساختار کد}
+
+\end{document}

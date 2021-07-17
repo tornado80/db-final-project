@@ -130,3 +130,6 @@ dmypy.json
 
 # Intellij IDEA
 .idea/
+
+# ignore some TeX auto generaed files
+*.aux

@@ -1,0 +1,110 @@
+\documentclass{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{qtree}
+\usepackage{fancyhdr}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{setspace}
+\usepackage{xepersian}
+
+\pagestyle{fancy}
+
+\settextfont{XB Niloofar}
+\setlatintextfont{Code New Roman}
+
+% Fixture for Xepersian 23 bug in setting persian math digit fonts
+%\ExplSyntaxOn \cs_set_eq:NN \etex_iffontchar:D \tex_iffontchar:D \ExplSyntaxOff
+%\setmathdigitfont{XB Niloofar}
+
+\newcommand{\me}{امیرحسین رجبی}
+\newcommand{\homework}{
+	پروژه پایانی پایگاه داده (بخش \lr{Data Warehouse})
+}
+\newcommand{\studentNumber}{9813013}
+\newcommand{\meAndStudentNumber}{\me \vspace{1pt} (\studentNumber)}
+\newcommand{\instructor}{دکتر غیبی}
+
+\fancyhead[C]{\homework}
+
+\title{\textbf{\homework}}
+\author{\meAndStudentNumber}
+\date{}
+
+\newcommand{\txt}[1]{\text{\lr{#1}}}
+
+\begin{document}
+	
+	\maketitle
+	
+	\doublespacing
+	
+	\section*{توضیح طراحی فعلی}
+	همانگونه که در فایل 
+	\lr{schema.sql}
+	آمده است برای هر رابطه در پایگاه داده مبدا چون 
+	$R(A_1, A_2, \cdots, A_n)$
+	که 
+	\lr{primary key}
+	آن  
+	$A_1, A_2, \cdots, A_p$
+	باشند، رابطه های زیر را در انبار داده در نظر میگیریم:
+	\begin{align*}
+		&R_{\txt{history}}(\txt{id}, \txt{operation\_timestamp}, \txt{operation\_type}, \txt{reason}) \\
+		&R_{\txt{primary key}}(\txt{history\_id}, A_1, A_2, \cdots, A_p) \\
+		&R_{\txt{all}}(\txt{history\_id}, A_1, A_2, \cdots, A_n)
+	\end{align*}
+	هنگام اضافه شدن یک رکورد به جدول $R$ یک رکورد که مشخص کننده اطلاعات عملیات (مانند نوع و زمان و دلیل عملیات) به
+	$R_{\txt{history}}$
+و یک رکورد که همه مقادیر رکورد جدید را دارد به
+	$R_{\txt{all}}$
+	اضافه میشود. اگر رکوردی آپدیت شود، علاوه بر اضافه شدن رکورد به
+	 $R_{\txt{history}}$ 
+	رکوردی شامل اطلاعات سطر دچار تغییر (\lr{primary key} آن) به 
+	$R_{\txt{primary key}}$
+	و رکوردی شامل مقادیر جدید ستون ها به 
+	$R_{\txt{all}}$
+	اضافه میشود. در صورت انجام عملیات حذف، علاوه بر اضافه شدن رکوردی به 
+	$R_{\txt{history}}$
+	رکوردی شامل اطلاعات سطر حذف شده به 
+	$R_{\txt{primary key}}$
+	اضافه میشود. همه اینها به کمک 
+	\lr{TRIGGER}
+	انجام شده است.
+	\section*{چگونه به گذشته سفر می کنیم؟}
+	برای مشاهده پایگاه داده در زمان خاصی از تاریخ، همه رکورد های موجود در جداول 
+	$R_{\txt{history}}$
+	را که زمان انجام عملیات کوچکتر از زمان مد نظر است را در نظر میگیریم و براساس ستون 
+	\lr{operation\_timestamp}
+	مرتب میکنیم و به ترتیب از اولین عملیات انحام شده تا آخرین عملیات آنها را در یک دیتابیس دیگر شبیه سازی میکنیم. در پایان وضعیت پایگاه داده جدید ساخته شده، همان وضعیت پایگاه داده مبدا در زمان مد نظر است. همچنین میتوان این عملیات را به صورت 
+	\lr{in place}
+	نیز انجام داد یعنی ابتدا همه رکورد های موجود در جداول $R_{\txt{history}}$ را براساس ستون زمان عملیات \lr{operation\_timestamp} مرتب میکنیم. سپس با شروع از آخرین عملیات و ادامه تا اولین عملیات با زمان بزرگتر از رمان مدنظر معکوس عملیات ها را در پایگاه داده اجرا کنیم. یعنی اگه عملیات 
+	\lr{insert}
+	بوده است، آن را حذف کنیم و اگر عملیات 
+	\lr{delete}
+	بود آن رکورد را اضافه کنیم. برای بازیابی مقادیر ستون ها میتوان با تغییری اندک در رابطه $R_{\txt{primary key}}$ ، مقادیر قریم ستون ها را نگه داریم. در نتیجه رکورد با 
+	\lr{primary key}
+	را به جدول اضافه کرده و مقادیر باقی ستون ها رو از مقادیر ذخیره شده در این رکورد بازیابی می کنیم. اگه عملیات 
+	\lr{update}
+	باشد. رکورد با مشخصات در رابطه نظیر 
+	$R_{\txt{all}}$
+	به رکورد با مشخصات نظیر $R_{\txt{primary key}}$ تبدیل می شود. در صورت تغییر نکردن 
+	\lr{primary key}
+	این یک آپدیت خواهد بود. در غیر این صورت رکورد با اطلاعات در $R_{\txt{all}}$ حذف و رکوردی با اطلاعات در $R_{\txt{primary key}}$ اضافه میشود.
+	
+	\section*{مدل داده ای}
+	ارتباط بین سه رابطه $R_{\txt{history}}$، $R_{\txt{primary key}}$ و $R_{\txt{all}}$ را میتوان از نوع ارث بری تعبیر کرد: رابطه های $R_{\txt{primary key}}$ و $R_{\txt{all}}$ هر دو از $R_{\txt{history}}$ ارث می برند و این ارث بری به صورت 
+	\lr{total}
+	و
+	\lr{overlapping}
+	است. زیرا هر رکورد باید یا \lr{insert}، \lr{delete} و \lr{update} باشد و می توانند در هر دو رابطه قرار بگیرد مانند \lr{update}. تعبیر غیر 
+	\lr{EER}
+	را در فایل 
+	\lr{data\_model.pdf}
+	ببینید.
+	
+\end{document}
