@@ -26,6 +26,10 @@ class DB:
     def schema(self):
         return self.__schema
 
+    @property
+    def tables(self) -> set:
+        return set(self.__columns.keys())
+
     def connect(self):
         kwargs = {"dbname": self.__dbname,
                   "user": self.__user,
@@ -35,7 +39,6 @@ class DB:
         if self.__port is not None:
             kwargs["port"] = self.__port
         self.__connection = psycopg2.connect(**kwargs)
-        #self.__connection.autocommit = True
         print(f"Successfully connected to database {self.__dbname} as {self.__user} ({self})")
 
     def __getitem__(self, table_name):
@@ -98,6 +101,37 @@ class DB:
 
         for a, b in foreign_keys:
             dag.add_outgoing_edge(a, b)
+
+    def does_any_unique_constraint_exist(self) -> bool:
+        loading("Finding unique constraints of", self)
+        with self.cursor as cursor:
+            cursor.execute("""
+                SELECT conrelid FROM pg_constraint WHERE contype = 'u'
+                AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = %s) 
+                GROUP BY conrelid;
+            """, (self.__schema,))
+            relations = cursor.fetchone()
+            self.commit()
+        done()
+        if relations is None:
+            return False
+        return True
+
+    def does_any_self_referencing_exist(self) -> bool:
+        loading("Finding self-referencing relations of", self)
+        with self.cursor as cursor:
+            cursor.execute("""
+                SELECT conrelid FROM pg_constraint 
+                WHERE contype = 'f' AND conrelid = confrelid 
+                AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = %s) 
+                GROUP BY conrelid;
+            """, (self.__schema,))
+            relations = cursor.fetchone()
+            self.commit()
+        done()
+        if relations is None:
+            return False
+        return True
 
     @property
     def dag(self) -> DAG:

@@ -1,5 +1,6 @@
 from linked_list import LinkedList
-from logger import loading, done
+from logger import loading, done, error
+
 
 class Vertex:
     def __init__(self, key):
@@ -46,7 +47,11 @@ class DAG:
                 if remaining_incoming_edges[neighbor_key] == 0:
                     nodes_without_incoming_edges.add(neighbor_key)
         done()
-        return result
+        if len(result) < len(self.__vertices):
+            error("The dependency graph is not a DAG since a cycle detected")
+            return None
+        else:
+            return result
 
     def add_outgoing_edge(self, k1, k2):
         for k in [k1, k2]:
